@@ -1,4 +1,4 @@
-// End-to-end check against a real Firefox, playing the part of Claude Code:
+// End-to-end check against a real Firefox, playing the part of an AI agent:
 // this script -> MCP server -> native host -> extension -> a local fixture site.
 // Firefox runs headless on a throwaway profile. HEADED=1 shows the window.
 import { spawn, spawnSync } from "node:child_process";
@@ -12,11 +12,14 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const FIREFOX = process.env.FIREFOX_BIN || "/Applications/Firefox.app/Contents/MacOS/firefox";
-const SHOTS = process.env.SHOT_DIR || path.join(os.tmpdir(), "kamurafox-e2e");
+const SHOTS = process.env.SHOT_DIR || path.join(os.tmpdir(), "wheelman-e2e");
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+// A socket folder of its own: with Wheelman installed in the user's Firefox, the
+// test would otherwise drive that Firefox instead of the throwaway one.
+process.env.WHEELMAN_SOCKETS = fs.mkdtempSync(path.join(os.tmpdir(), "wheelman-sockets-"));
 
 const FIXTURE = `<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><title>Kamurafox fixture</title></head>
+<html lang="en"><head><meta charset="utf-8"><title>Wheelman fixture</title></head>
 <body>
 <h1>Fixture</h1>
 <nav><a href="/second">Second page</a> <a href="/second" target="_blank">New tab link</a></nav>
@@ -124,8 +127,8 @@ async function main() {
   launch();
 
   client = new Client();
-  const hello = await client.request("initialize", { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "e2e", version: "0" } });
-  check("MCP handshake", hello.serverInfo.name === "kamurafox" && hello.capabilities.tools);
+  const hello = await client.request("initialize", { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "codex-mcp-client", version: "0" } });
+  check("MCP handshake", hello.serverInfo.name === "wheelman" && hello.capabilities.tools);
   const listed = await client.request("tools/list", {});
   check("15 tools listed", listed.tools.length === 15, String(listed.tools.length));
 
@@ -149,7 +152,7 @@ async function main() {
 
   let out = await client.call("tabs_create", { url: base });
   const tabId = Number(out.text.match(/tabId (\d+)/)[1]);
-  check("tabs_create opens the page", /Kamurafox fixture/.test(out.text), out.text);
+  check("tabs_create opens the page", /Wheelman fixture/.test(out.text), out.text);
 
   await assert.rejects(client.call("navigate", { tabId: 999999, url: base }), /not under your control/);
   check("a tab that is not controlled is refused", true);
@@ -180,7 +183,12 @@ async function main() {
 
   out = await client.call("read_console_messages", { tabId });
   check("console log and warning captured", /\[log\] fixture ready \{"n":1\}/.test(out.text) && /\[warn\] submitted/.test(out.text), out.text);
-  out = await client.call("read_network_requests", { tabId, urlPattern: "api" });
+  // The page's fetch may still be in flight on a busy machine: give it a few seconds.
+  for (let tries = 0; tries < 10; tries++) {
+    out = await client.call("read_network_requests", { tabId, urlPattern: "api" });
+    if (!/No requests match/.test(out.text)) break;
+    await sleep(500);
+  }
   check("network request captured", /GET 200 \S+ \S+\/api\/ping\?x=1/.test(out.text), out.text);
 
   out = await client.call("javascript_tool", { tabId, code: "window.appState.answer" });
@@ -190,8 +198,12 @@ async function main() {
   out = await client.call("javascript_tool", { tabId, code: "nope.nope" });
   check("javascript reports errors", /Error: ReferenceError/.test(out.text), out.text);
 
-  out = await client.call("javascript_tool", { tabId, code: 'document.querySelectorAll("kamurafox-frame").length' });
+  out = await client.call("javascript_tool", { tabId, code: 'document.querySelectorAll("wheelman-frame").length' });
   check("the controlled tab wears the frame", out.text.trim() === "1", out.text);
+  // The sticker sits in a closed shadow root: look at sticker.jpg to see it name the agent ("Codex").
+  out = await client.call("computer", { tabId, action: "screenshot", show_mark: true });
+  check("screenshot with the mark", !!(out.image && out.image.data));
+  if (out.image) fs.writeFileSync(path.join(SHOTS, "sticker.jpg"), Buffer.from(out.image.data, "base64"));
 
   out = await client.call("find", { tabId, query: "delete button" });
   check("find by keywords", /button "Delete"/.test(out.text.split("\n")[1]), out.text);
@@ -237,7 +249,7 @@ async function main() {
   out = await client.call("javascript_tool", { tabId, code: 'document.getElementById("p").textContent' });
   check("javascript still works where the page forbids eval", /^CSP page/.test(out.text) && /isolated world/.test(out.text), out.text);
   out = await client.call("navigate", { tabId, url: "back" });
-  check("navigate back", /Kamurafox fixture/.test(out.text), out.text);
+  check("navigate back", /Wheelman fixture/.test(out.text), out.text);
 
   out = await client.call("tabs_close", { tabId: second });
   await client.call("tabs_close", { tabId });

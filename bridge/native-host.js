@@ -9,9 +9,10 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 
-const VERSION = "0.1.0";
-const HOME = path.join(os.homedir(), ".kamurafox");
-const SOCK_DIR = path.join(HOME, "sockets");
+const VERSION = "0.2.1";
+const HOME = path.join(os.homedir(), ".wheelman");
+// WHEELMAN_SOCKETS lets the tests keep their Firefox apart from the user's own.
+const SOCK_DIR = process.env.WHEELMAN_SOCKETS || path.join(HOME, "sockets");
 const SOCK = path.join(SOCK_DIR, `${process.pid}.sock`);
 const LOG = path.join(HOME, "host.log");
 const MAX_TO_BROWSER = 1024 * 1024; // Firefox drops anything bigger coming from the host
@@ -35,6 +36,7 @@ function toBrowser(message) {
 }
 
 const clients = new Map();
+const agents = new Map(); // client id -> name of the AI behind it, "" when unknown
 let nextClient = 1;
 
 function toClient(sock, message) {
@@ -42,16 +44,24 @@ function toClient(sock, message) {
 }
 
 function announce() {
-  toBrowser({ type: "clients", count: clients.size });
+  toBrowser({ type: "clients", count: clients.size, agents: [...agents.values()] });
 }
 
+const label = (value) => (typeof value === "string" ? value.slice(0, 32) : "");
+
 function fromClient(cid, sock, message) {
+  if (message.type === "hello") {
+    agents.set(cid, label(message.agent));
+    announce();
+    return;
+  }
   if (message.type !== "call") return;
   const sent = toBrowser({
     type: "call",
     id: `${cid}:${message.id}`,
     tool: message.tool,
     args: message.args || {},
+    agent: label(message.agent),
   });
   if (!sent) {
     toClient(sock, { type: "result", id: String(message.id), ok: false, error: "Request is larger than 1 MB, the most Firefox accepts from a native host." });
@@ -85,6 +95,7 @@ const server = net.createServer((sock) => {
     }
   });
   const drop = () => {
+    agents.delete(cid);
     if (clients.delete(cid)) announce();
   };
   sock.on("close", drop);
@@ -126,6 +137,7 @@ process.on("uncaughtException", (error) => {
 
 // Only this user may reach the socket: whoever connects can drive the browser.
 process.umask(0o077);
+fs.mkdirSync(HOME, { recursive: true, mode: 0o700 });
 fs.mkdirSync(SOCK_DIR, { recursive: true, mode: 0o700 });
 fs.chmodSync(HOME, 0o700);
 fs.chmodSync(SOCK_DIR, 0o700);

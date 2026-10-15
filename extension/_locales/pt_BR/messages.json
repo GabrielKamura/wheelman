@@ -1,12 +1,23 @@
 {
   "extName": {
-    "message": "Kamurafox"
+    "message": "Wheelman"
   },
   "extDescription": {
-    "message": "Deixa o Claude Code deste computador dirigir abas do Firefox: abrir, clicar, digitar, ler e tirar print. Não oficial, não é da Anthropic nem da Mozilla."
+    "message": "Deixa as IAs deste computador (Claude Code, Codex, Gemini CLI e outras que falam MCP) dirigirem abas do Firefox: abrir, clicar, digitar, ler e tirar print. Não oficial."
   },
   "indicator": {
-    "message": "Claude Code está dirigindo esta aba"
+    "message": "Uma IA está dirigindo esta aba"
+  },
+  "indicatorNamed": {
+    "message": "$AGENT$ está dirigindo esta aba",
+    "placeholders": {
+      "agent": {
+        "content": "$1"
+      }
+    }
+  },
+  "groupTitle": {
+    "message": "IA"
   },
   "bridgeOn": {
     "message": "ponte ligada"
@@ -18,13 +29,13 @@
     "message": "Rode o instalador na pasta do projeto: node install.js."
   },
   "sessionsNone": {
-    "message": "nenhuma sessão do Claude Code ligada"
+    "message": "nenhuma IA ligada"
   },
   "sessionsOne": {
-    "message": "1 sessão do Claude Code ligada"
+    "message": "1 sessão de IA ligada"
   },
   "sessionsMany": {
-    "message": "$COUNT$ sessões do Claude Code ligadas",
+    "message": "$COUNT$ sessões de IA ligadas",
     "placeholders": {
       "count": {
         "content": "$1"
@@ -35,7 +46,7 @@
     "message": "Abas sob controle"
   },
   "tabsNone": {
-    "message": "Nenhuma agora. Peça algo ao Claude Code."
+    "message": "Nenhuma agora. Peça algo à sua IA."
   },
   "release": {
     "message": "soltar"
@@ -50,7 +61,7 @@
     "message": "Retomar controle"
   },
   "pausedNote": {
-    "message": "Pausado: o Claude Code não mexe no Firefox."
+    "message": "Pausado: nenhuma IA mexe no Firefox."
   },
   "pausedSticker": {
     "message": "pausado"

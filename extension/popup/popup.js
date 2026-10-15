@@ -4,7 +4,7 @@ const t = (key, ...subs) => browser.i18n.getMessage(key, subs);
 const $ = (id) => document.getElementById(id);
 const ask = (message) => browser.runtime.sendMessage(message).then(render);
 
-// Ícones no traço da casa: grade de 24, linha de 2.3, pontas redondas.
+// Icons in the house stroke: 24 grid, 2.3 line, round caps.
 const ICONS = {
   check: "M5 12.5 9.5 17 19 7.5",
   alert: "M12 4 21 20H3ZM12 10v4.5M12 17.5v.1",
@@ -34,7 +34,17 @@ function status(el, kind, iconName, text) {
 function render(view) {
   status($("bridge"), view.online ? "good" : "crit", view.online ? "check" : "alert", t(view.online ? "bridgeOn" : "bridgeOff"));
   const sessions = view.sessions === 0 ? t("sessionsNone") : view.sessions === 1 ? t("sessionsOne") : t("sessionsMany", String(view.sessions));
-  status($("sessions"), view.sessions ? "good" : "", view.sessions ? "check" : "idle", sessions);
+  // Which AIs are connected, on a line of their own under the count.
+  const label = document.createElement("span");
+  label.append(sessions);
+  const names = [...new Set((view.agents || []).filter(Boolean))].join(", ");
+  if (names) {
+    const who = document.createElement("small");
+    who.className = "who";
+    who.textContent = names;
+    label.append(who);
+  }
+  status($("sessions"), view.sessions ? "good" : "", view.sessions ? "check" : "idle", label);
   $("hint").hidden = view.online;
   $("hint").textContent = [t("bridgeHint"), view.hostError].filter(Boolean).join(" ");
 
@@ -48,7 +58,7 @@ function render(view) {
     const title = document.createElement("span");
     title.className = "title";
     title.textContent = tab.title;
-    title.title = tab.url;
+    title.title = tab.agent ? `${tab.agent} · ${tab.url}` : tab.url;
     item.append(title);
     if (tab.adopted) {
       const own = document.createElement("span");

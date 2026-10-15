@@ -1,5 +1,5 @@
-/* Visual da casa (o mesmo do Kamurafy e do Moneysniper): papel claro, tinta preta grossa,
-   sombra dura deslocada, amarelo-ouro. Valores em docs/design.md. */
+/* House look (shared with Kamurafy and Moneysniper): light paper, thick black ink,
+   hard offset shadow, gold yellow. Values in docs/design.md. */
 @font-face { font-family: 'Fredoka'; src: url('../fonts/Fredoka-500.woff2') format('woff2'); font-weight: 400 500; font-display: swap; }
 @font-face { font-family: 'Fredoka'; src: url('../fonts/Fredoka-600.woff2') format('woff2'); font-weight: 600 900; font-display: swap; }
 
@@ -42,7 +42,7 @@ header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
 header img { flex: none; }
 h1 { margin: 0; font-size: 26px; font-weight: 600; line-height: 1; }
 
-/* figurinha torta: um fato só, no canto do cabeçalho */
+/* tilted sticker: a single fact, in the corner of the header */
 .sticker {
   margin-left: auto;
   padding: 4px 11px;
@@ -55,7 +55,7 @@ h1 { margin: 0; font-size: 26px; font-weight: 600; line-height: 1; }
   white-space: nowrap;
 }
 
-/* situação: sempre ícone + texto, nunca só a cor */
+/* status: always icon + text, never color alone */
 .states { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin-bottom: 14px; }
 .status {
   display: inline-flex;
@@ -74,6 +74,8 @@ h1 { margin: 0; font-size: 26px; font-weight: 600; line-height: 1; }
 .status.good svg { color: var(--st-good); }
 .status.crit { background: var(--st-crit-soft); }
 .status.crit svg { color: var(--st-crit); }
+.status .who { display: block; font-size: 12px; font-weight: 500; color: var(--ink-2); }
+.status:has(.who) { border-radius: var(--radius-sm); padding-block: 4px; }
 
 .tip {
   margin: 0 0 14px;

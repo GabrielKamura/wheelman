@@ -3,13 +3,14 @@
 // the page's own view of itself, everything else here is invisible to the page.
 (() => {
   "use strict";
-  if (globalThis.__kamurafox) return;
-  globalThis.__kamurafox = true;
+  if (globalThis.__wheelman) return;
+  globalThis.__wheelman = true;
 
   const page = window.wrappedJSObject;
-  const early = globalThis.__kamurafoxEarly; // console recording, running since document start
+  const early = globalThis.__wheelmanEarly; // console recording, running since document start
   let active = true;
   let dialog = { accept: false, promptText: null };
+  let agent = typeof globalThis.__wheelmanAgent === "string" ? globalThis.__wheelmanAgent : ""; // set by the background just before this script
   const notes = []; // side effects to report with the next action
 
   const squash = (text, max = 120) => {
@@ -90,15 +91,22 @@
     const html = document.documentElement;
     if (!active || !html || html.localName !== "html") return;
     if (frame && frame.host.isConnected) return;
-    const host = css(document.createElement("kamurafox-frame"), LOOK.host);
+    const host = css(document.createElement("wheelman-frame"), LOOK.host);
     host.setAttribute("aria-hidden", "true");
     const root = host.attachShadow({ mode: "closed" });
     root.appendChild(css(document.createElement("div"), LOOK.frame));
     const sticker = css(document.createElement("div"), LOOK.sticker);
-    sticker.append(css(document.createElement("span"), LOOK.live), browser.i18n.getMessage("indicator"));
+    const label = document.createElement("span");
+    label.textContent = indicatorText();
+    sticker.append(css(document.createElement("span"), LOOK.live), label);
     root.appendChild(sticker);
     html.appendChild(host);
-    frame = { host, root };
+    frame = { host, root, label };
+  }
+
+  // "Claude Code is driving this tab", or "AI is driving this tab" when the agent did not say its name.
+  function indicatorText() {
+    return agent ? browser.i18n.getMessage("indicatorNamed", [agent]) : browser.i18n.getMessage("indicator");
   }
 
   // The "plop" where the agent clicked: a gold dot that bounces in and fades.
@@ -166,7 +174,7 @@
     return shown || getComputedStyle(el).display === "contents";
   }
 
-  const SKIP = new Set(["script", "style", "noscript", "template", "head", "meta", "link", "title", "base", "br", "wbr", "source", "track", "param", "kamurafox-frame"]);
+  const SKIP = new Set(["script", "style", "noscript", "template", "head", "meta", "link", "title", "base", "br", "wbr", "source", "track", "param", "wheelman-frame"]);
   const LEAF = new Set(["select", "textarea", "input", "img", "iframe", "svg", "canvas", "video", "audio", "option"]);
   const INPUT_ROLES = { checkbox: "checkbox", radio: "radio", button: "button", submit: "button", reset: "button", image: "button", range: "slider", search: "searchbox", number: "spinbutton", file: "file chooser" };
   const TAG_ROLES = {
@@ -879,6 +887,10 @@
     ping: () => ({}),
     config(message) {
       if (message.dialog) dialog = message.dialog;
+      if (typeof message.agent === "string" && message.agent && message.agent !== agent) {
+        agent = message.agent;
+        if (frame) frame.label.textContent = indicatorText();
+      }
       ensureIndicator();
       return {};
     },
@@ -889,7 +901,7 @@
       early.stop();
       if (frame) frame.host.remove();
       browser.runtime.onMessage.removeListener(onMessage);
-      globalThis.__kamurafox = false;
+      globalThis.__wheelman = false;
       return {};
     },
     drain: () => ({ entries: early.drain() }),

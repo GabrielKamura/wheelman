@@ -1,15 +1,15 @@
 "use strict";
 
-// Talks to the native host (which talks to Claude Code) and runs each tool call
+// Talks to the native host (which talks to the AI agents) and runs each tool call
 // against the tabs under control. Other tabs only ever get early.js, which
 // switches itself off as soon as it learns the tab is not controlled.
 
-const HOST_NAME = "kamurafox";
+const HOST_NAME = "wheelman";
 const MAX_LOG = 1000;
 const OUTPUT_LIMIT = 20000;
 
-const state = { port: null, online: false, hostError: "", sessions: 0, paused: false, retryMs: 2000 };
-const controlled = new Map(); // tabId -> { adopted, console, network, dialog, unwatch }
+const state = { port: null, online: false, hostError: "", sessions: 0, agents: [], paused: false, retryMs: 2000 };
+const controlled = new Map(); // tabId -> { adopted, agent, console, network, dialog, unwatch }
 const groups = new Map(); // windowId -> tab group id
 let early = null; // registration of early.js, kept only while a tab is controlled
 
@@ -59,6 +59,7 @@ function hostDown(message) {
   state.port = null;
   state.online = false;
   state.sessions = 0;
+  state.agents = [];
   state.hostError = message || "";
   refreshBadge();
   setTimeout(connectHost, state.retryMs);
@@ -80,33 +81,42 @@ function onHostMessage(message) {
     refreshBadge();
   } else if (message.type === "clients") {
     state.sessions = message.count | 0;
+    state.agents = Array.isArray(message.agents) ? message.agents.filter((name) => typeof name === "string") : [];
   } else if (message.type === "call") {
-    runTool(message.tool, message.args || {}).then(
+    const agent = typeof message.agent === "string" ? message.agent.slice(0, 32) : "";
+    runTool(message.tool, message.args || {}, agent).then(
       (result) => reply({ type: "result", id: message.id, ok: true, result }),
       (error) => reply({ type: "result", id: message.id, ok: false, error: String((error && error.message) || error) })
     );
   }
 }
 
-async function runTool(name, args) {
+async function runTool(name, args, agent) {
   const tool = TOOLS[name];
   if (!tool) throw new Error(`Unknown tool: ${name}`);
-  if (state.paused) throw new Error("Control is paused: the user paused it in the Kamurafox popup. Ask them to resume before trying again.");
-  return tool(args);
+  if (state.paused) throw new Error("Control is paused: the user paused it in the Wheelman popup. Ask them to resume before trying again.");
+  // Several agents may share the tabs: the sticker names whichever one acted last.
+  const tabId = Number(args.tabId);
+  const entry = controlled.get(tabId);
+  if (entry && agent && entry.agent !== agent) {
+    entry.agent = agent;
+    browser.tabs.sendMessage(tabId, { kfx: "config", agent }, { frameId: 0 }).catch(() => {});
+  }
+  return tool(args, agent);
 }
 
 function refreshBadge() {
   const text = state.paused ? "II" : controlled.size ? String(controlled.size) : "";
   browser.browserAction.setBadgeText({ text });
-  browser.browserAction.setBadgeBackgroundColor({ color: state.paused ? "#6b5d55" : "#d97757" });
+  browser.browserAction.setBadgeBackgroundColor({ color: state.paused ? "#6b5d55" : "#000000" });
 }
 
 // ------------------------------------------------------------ controlled tabs
 
-function control(tabId, adopted) {
+function control(tabId, adopted, agent = "") {
   let entry = controlled.get(tabId);
   if (entry) return entry;
-  entry = { adopted, console: [], network: [], dialog: { accept: false, promptText: null }, unwatch: null };
+  entry = { adopted, agent, console: [], network: [], dialog: { accept: false, promptText: null }, unwatch: null };
   controlled.set(tabId, entry);
   const filter = { urls: ["<all_urls>"], tabId };
   const done = (d) => pushCapped(entry.network, { method: d.method, url: d.url, status: d.statusCode, type: d.type });
@@ -143,7 +153,7 @@ function armEarly() {
   return early.catch(() => {});
 }
 
-// Tabs Claude opens sit together in a "Claude" tab group. Adopted tabs stay where the user left them.
+// Tabs the agents open sit together in an "AI" tab group. Adopted tabs stay where the user left them.
 async function group(tab) {
   if (typeof browser.tabs.group !== "function") return;
   try {
@@ -158,7 +168,7 @@ async function group(tab) {
     }
     const groupId = await browser.tabs.group({ tabIds: [tab.id], createProperties: { windowId: tab.windowId } });
     groups.set(tab.windowId, groupId);
-    if (browser.tabGroups && browser.tabGroups.update) await browser.tabGroups.update(groupId, { title: "Claude", color: "orange" });
+    if (browser.tabGroups && browser.tabGroups.update) await browser.tabGroups.update(groupId, { title: browser.i18n.getMessage("groupTitle"), color: "yellow" });
   } catch {}
 }
 
@@ -235,11 +245,11 @@ async function go(tabId, where) {
 
 // The tab starts blank and is navigated after it is registered, so the page's
 // first scripts already run with the console and dialog hooks in place.
-async function openTab(url, opener) {
+async function openTab(url, opener, agent) {
   const props = { url: "about:blank", active: true };
   if (opener) Object.assign(props, { windowId: opener.windowId, openerTabId: opener.id, index: opener.index + 1 });
   const tab = await browser.tabs.create(props);
-  control(tab.id, false);
+  control(tab.id, false, agent);
   await armEarly();
   await group(tab);
   const outcome = url ? await go(tab.id, url) : "complete";
@@ -275,10 +285,13 @@ async function collectConsole(tabId) {
 }
 
 async function inject(tabId) {
-  await browser.tabs.executeScript(tabId, { file: "/early.js", runAt: "document_start", frameId: 0 });
-  await browser.tabs.executeScript(tabId, { file: "/content.js", runAt: "document_start", frameId: 0 });
   const entry = controlled.get(tabId);
-  if (entry) await browser.tabs.sendMessage(tabId, { kfx: "config", dialog: entry.dialog }, { frameId: 0 }).catch(() => {});
+  const agent = (entry && entry.agent) || "";
+  await browser.tabs.executeScript(tabId, { file: "/early.js", runAt: "document_start", frameId: 0 });
+  // Handed over before content.js runs, so the sticker shows the right name from its first frame.
+  await browser.tabs.executeScript(tabId, { code: `globalThis.__wheelmanAgent = ${JSON.stringify(agent)};`, runAt: "document_start", frameId: 0 });
+  await browser.tabs.executeScript(tabId, { file: "/content.js", runAt: "document_start", frameId: 0 });
+  if (entry) await browser.tabs.sendMessage(tabId, { kfx: "config", dialog: entry.dialog, agent }, { frameId: 0 }).catch(() => {});
 }
 
 async function blockedPage(tabId) {
@@ -418,13 +431,13 @@ const TOOLS = {
     return { text };
   },
 
-  async tabs_create({ url }) {
+  async tabs_create({ url }, agent) {
     if (url) normalizeUrl(url);
-    const { tab, outcome } = await openTab(url || "");
+    const { tab, outcome } = await openTab(url || "", null, agent);
     return { text: `Opened tabId ${tab.id}${outcome === "timeout" ? " (still loading after 25 s)" : ""}: ${describe(tab)}` };
   },
 
-  async tabs_adopt({ tabId }) {
+  async tabs_adopt({ tabId }, agent) {
     const id = Number(tabId);
     let tab;
     try {
@@ -432,7 +445,7 @@ const TOOLS = {
     } catch {
       throw new Error(`There is no tab ${tabId}. Call tabs_context with all: true to list the open tabs.`);
     }
-    control(id, true);
+    control(id, true, agent);
     await armEarly();
     await inject(id).catch(() => {});
     return { text: `Now controlling the user's tab ${id}: ${describe(tab)}` };
@@ -584,10 +597,10 @@ async function snapshot() {
   for (const [id, entry] of controlled) {
     try {
       const tab = await browser.tabs.get(id);
-      tabs.push({ id, title: tab.title || tab.url, url: tab.url, adopted: entry.adopted });
+      tabs.push({ id, title: tab.title || tab.url, url: tab.url, adopted: entry.adopted, agent: entry.agent });
     } catch {}
   }
-  return { online: state.online, hostError: state.hostError, sessions: state.sessions, paused: state.paused, tabs };
+  return { online: state.online, hostError: state.hostError, sessions: state.sessions, agents: state.agents, paused: state.paused, tabs };
 }
 
 browser.runtime.onMessage.addListener((message, sender) => {
@@ -597,7 +610,7 @@ browser.runtime.onMessage.addListener((message, sender) => {
     if (message.kfx === "hello") return Promise.resolve({ controlled: !!entry });
     if (!entry) return undefined;
     if (message.kfx === "console" && Array.isArray(message.entries)) for (const item of message.entries) pushCapped(entry.console, item);
-    if (message.kfx === "open") openTab(message.url, sender.tab).catch(() => {});
+    if (message.kfx === "open") openTab(message.url, sender.tab, entry.agent).catch(() => {});
     return undefined;
   }
   if (message.kfx === "popup:pause") {

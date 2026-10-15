@@ -1,12 +1,23 @@
 {
   "extName": {
-    "message": "Kamurafox"
+    "message": "Wheelman"
   },
   "extDescription": {
-    "message": "Lets Claude Code on this computer drive Firefox tabs: open, click, type, read and take screenshots. Unofficial, not made by Anthropic or Mozilla."
+    "message": "Lets the AI agents on this computer (Claude Code, Codex, Gemini CLI and other MCP clients) drive Firefox tabs: open, click, type, read and take screenshots. Unofficial."
   },
   "indicator": {
-    "message": "Claude Code is driving this tab"
+    "message": "AI is driving this tab"
+  },
+  "indicatorNamed": {
+    "message": "$AGENT$ is driving this tab",
+    "placeholders": {
+      "agent": {
+        "content": "$1"
+      }
+    }
+  },
+  "groupTitle": {
+    "message": "AI"
   },
   "bridgeOn": {
     "message": "bridge connected"
@@ -18,13 +29,13 @@
     "message": "Run the installer in the project folder: node install.js."
   },
   "sessionsNone": {
-    "message": "no Claude Code session connected"
+    "message": "no AI connected"
   },
   "sessionsOne": {
-    "message": "1 Claude Code session connected"
+    "message": "1 AI session connected"
   },
   "sessionsMany": {
-    "message": "$COUNT$ Claude Code sessions connected",
+    "message": "$COUNT$ AI sessions connected",
     "placeholders": {
       "count": {
         "content": "$1"
@@ -35,7 +46,7 @@
     "message": "Tabs under control"
   },
   "tabsNone": {
-    "message": "None right now. Ask Claude Code for something."
+    "message": "None right now. Ask your AI for something."
   },
   "release": {
     "message": "release"
@@ -50,7 +61,7 @@
     "message": "Resume control"
   },
   "pausedNote": {
-    "message": "Paused: Claude Code cannot touch Firefox."
+    "message": "Paused: no AI can touch Firefox."
   },
   "pausedSticker": {
     "message": "paused"

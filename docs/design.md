@@ -1,59 +1,59 @@
-# Visual do Kamurafox
+# Wheelman visual style
 
-**Uma frase:** o visual da casa, o mesmo do Kamurafy e do Moneysniper: caderno de cartum, com papel claro, tinta preta grossa, sombra dura deslocada, amarelo-ouro de destaque e uma raposa de mascote.
+**In one sentence:** the house look, the same as Kamurafy and Moneysniper: a cartoon notebook, with light paper, thick black ink, a hard offset shadow, gold-yellow highlights and a fox mascot.
 
-Fechado em 03/10/2026. Os valores vieram do guia do Kamurafy (`docs/design.md` e `ui/css/base.css` daquele projeto), lidos nesse mesmo dia. Não há tema escuro: a casa é papel claro, e o popup fica claro mesmo com o Firefox no tema escuro.
+Settled on 2026-10-03. The values came from the Kamurafy guide (`docs/design.md` and `ui/css/base.css` in that project), read the same day. There is no dark theme: the house look is light paper, and the popup stays light even when Firefox is in its dark theme.
 
-## O que é da casa e ficou igual
+## What comes from the house and stayed the same
 
-| Peça | Valor |
+| Piece | Value |
 |---|---|
-| Tinta | `#000` |
-| Texto de apoio | `#374151` |
-| Papel (fundo) | `#fffdf8` |
-| Cartão | `#fff` |
-| Área neutra | `#f5f3ee` |
-| Ouro (destaque) e ouro claro | `#ffd23f` e `#fff1b8` |
-| Rosa (bochecha do mascote) | `#ff9eb5` |
-| Situação boa e crítica | `#0ca30c` sobre `#dcf5dc`, `#d03b3b` sobre `#fadcdc` |
-| Borda | 3 px de tinta |
-| Sombra | dura, sem desfoque: 4 px (botão, cartão) e 2 px (figurinha, botão pequeno) |
-| Cantos | 20 px no cartão, 12 px no aviso, 10 px na figurinha, 999 px em botão e situação |
-| Botão | `.btn`: levanta 2 px ao passar o mouse, afunda 3 px ao clicar; `.gold`, `.ink` (preto com sombra ouro), `.small` |
-| Situação | `.status`: sempre ícone + texto, nunca só a cor |
-| Figurinha | `.sticker`: ouro, torta 3 graus, um fato só |
-| Ícones | grade de 24, linha de 2,3, pontas redondas, `currentColor` |
-| Curvas de movimento | `cubic-bezier(.22, 1, .36, 1)` e o pulo `cubic-bezier(.34, 1.56, .64, 1)` |
-| Fonte | Fredoka, pesos 500 e 600. A More Sugar é de uso pessoal e não entra em nada publicado |
+| Ink | `#000` |
+| Supporting text | `#374151` |
+| Paper (background) | `#fffdf8` |
+| Card | `#fff` |
+| Neutral area | `#f5f3ee` |
+| Gold (highlight) and light gold | `#ffd23f` and `#fff1b8` |
+| Pink (mascot's cheek) | `#ff9eb5` |
+| Good and critical status | `#0ca30c` on `#dcf5dc`, `#d03b3b` on `#fadcdc` |
+| Border | 3 px of ink |
+| Shadow | hard, no blur: 4 px (button, card) and 2 px (sticker, small button) |
+| Corners | 20 px on the card, 12 px on the notice, 10 px on the sticker, 999 px on buttons and status |
+| Button | `.btn`: lifts 2 px on hover, sinks 3 px on click; `.gold`, `.ink` (black with a gold shadow), `.small` |
+| Status | `.status`: always icon + text, never color alone |
+| Sticker | `.sticker`: gold, tilted 3 degrees, one fact only |
+| Icons | 24 grid, 2.3 stroke, round caps, `currentColor` |
+| Motion curves | `cubic-bezier(.22, 1, .36, 1)` and the bounce `cubic-bezier(.34, 1.56, .64, 1)` |
+| Font | Fredoka, weights 500 and 600. More Sugar is for personal use only and does not go into anything published |
 
-## O que é daqui
+## What is specific to this project
 
-- **A raposa** (`extension/icons/kamurafox.svg`): cabeça de frente, ouro, contorno de tinta de 6 em 96, orelha com miolo preto, máscara branca, bochecha rosa, nariz preto. Ouro em vez de laranja para não lembrar a raposa do Firefox.
-- **A marca na aba dirigida** (`LOOK` em `extension/content.js`): moldura de tinta de 3 px com fio de ouro por dentro, e uma figurinha no canto de baixo à esquerda com uma bolinha verde de "ao vivo" e o texto "Claude Code está dirigindo esta aba". Canto de baixo porque no topo ficam o menu, a busca e os botões dos sites.
-- **O plop do clique**: uma bolinha de ouro com contorno de tinta que pula e some em meio segundo, no ponto onde o agente clicou.
-- **Fonte dentro da página dos outros**: nada é baixado ali. Usa a letra arredondada do sistema (`ui-rounded`, SF Pro Rounded, Arial Rounded MT Bold) e, na falta, a do sistema. O estilo é aplicado direto no elemento, sem folha de estilo, para valer também em sites com política de segurança rígida.
+- **The fox** (`extension/icons/wheelman.svg`): front-facing head, gold, 6-in-96 ink outline, ear with a black inner part, white mask, pink cheek, black nose. Gold instead of orange so it does not look like the Firefox fox.
+- **The mark on a driven tab** (`LOOK` in `extension/content.js`): a 3 px ink frame with a gold line inside it, and a sticker in the bottom left corner with a green "live" dot and the text saying who is driving, such as "Claude Code is driving this tab" (the name comes from the connected agent; with no name, "AI is driving this tab"). Bottom corner because the top is where sites keep their menu, search and buttons.
+- **The click plop**: a gold dot with an ink outline that pops and fades in half a second, at the spot where the agent clicked.
+- **Font inside other people's pages**: nothing is downloaded there. It uses the system's rounded typeface (`ui-rounded`, SF Pro Rounded, Arial Rounded MT Bold) and, failing that, the system font. The style is applied directly on the element, with no stylesheet, so it also works on sites with a strict security policy.
 
-## Voz
+## Voice
 
-Português do Brasil e inglês, tom de amigo que entende do assunto: direto, sem prometer milagre.
+Plain English (the extension also ships in Brazilian Portuguese), in the tone of a friend who knows the subject: direct, no promising miracles.
 
-- botão principal: "Pausar controle", e pausado "Retomar controle"
-- cada aba da lista: "soltar"
-- lista vazia: "Nenhuma agora. Peça algo ao Claude Code."
-- sem ponte: "Rode o instalador na pasta do projeto: node install.js."
-- pausado: "Pausado: o Claude Code não mexe no Firefox."
+- main button: "Pause control", and when paused "Resume control" (pt_BR: "Pausar controle", "Retomar controle")
+- each tab in the list: "release" (pt_BR: "soltar")
+- empty list: "None right now. Ask your AI for something." (pt_BR: "Nenhuma agora. Peça algo à sua IA.")
+- no bridge: "Run the installer in the project folder: node install.js." (pt_BR: "Rode o instalador na pasta do projeto: node install.js.")
+- paused: "Paused: no AI can touch Firefox." (pt_BR: "Pausado: nenhuma IA mexe no Firefox.")
 
-## Movimento
+## Motion
 
-O cartão entra com um pulo curto ao abrir o popup, o botão levanta e afunda, o clique do agente faz o plop. Tudo isso desliga com "reduzir movimento".
+The card enters with a short bounce when the popup opens, the button lifts and sinks, and the agent's click makes the plop. All of it turns off with "reduce motion".
 
-## Não fazer
+## Do not
 
-- Laranja, terracota ou roxo: lembram a Mozilla, a Anthropic e o resto das extensões de IA.
-- Moldura pulsando, brilho, faísca, robô.
-- Tema escuro só trocando o fundo.
-- Usar a More Sugar ou o fundo de rabiscos do Moneysniper (foi gerado a partir dela).
+- Orange, terracotta or purple: they recall Mozilla, Anthropic and the rest of the AI extensions.
+- Pulsing frames, glow, sparkles, robots.
+- A dark theme made by only swapping the background.
+- Use More Sugar or the Moneysniper scribble background (it was generated from it).
 
-## Licenças
+## Licenses
 
-Fredoka: SIL Open Font License 1.1, texto em `extension/fonts/Fredoka-OFL.txt`.
+Fredoka: SIL Open Font License 1.1, text in `extension/fonts/Fredoka-OFL.txt`.

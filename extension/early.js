@@ -1,10 +1,10 @@
 // Records the console from the very start of a page; anything injected later
 // would miss the page's first scripts. Registered for web pages only while
-// Claude controls at least one tab. It asks the background whether this tab is
+// an agent controls at least one tab. It asks the background whether this tab is
 // one of them, and if not it undoes itself and throws the recording away.
 (() => {
   "use strict";
-  if (globalThis.__kamurafoxEarly) return;
+  if (globalThis.__wheelmanEarly) return;
 
   const page = window.wrappedJSObject;
   const backlog = [];
@@ -69,7 +69,7 @@
     for (const level of Object.keys(originals)) page.console[level] = originals[level];
     window.removeEventListener("error", onError, true);
     window.removeEventListener("unhandledrejection", onRejection);
-    delete globalThis.__kamurafoxEarly;
+    delete globalThis.__wheelmanEarly;
   }
 
   for (const level of ["log", "info", "warn", "error", "debug"]) {
@@ -87,7 +87,7 @@
   window.addEventListener("unhandledrejection", onRejection);
   window.addEventListener("pagehide", onLeave);
 
-  globalThis.__kamurafoxEarly = { record, drain, stop, show };
+  globalThis.__wheelmanEarly = { record, drain, stop, show };
 
   browser.runtime.sendMessage({ kfx: "hello" }).then((answer) => {
     if (!answer || !answer.controlled) return stop();

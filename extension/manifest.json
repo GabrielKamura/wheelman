@@ -2,15 +2,15 @@
   "manifest_version": 2,
   "name": "__MSG_extName__",
   "description": "__MSG_extDescription__",
-  "version": "0.1.0",
+  "version": "0.2.1",
   "default_locale": "en",
   "icons": {
-    "48": "icons/kamurafox.svg",
-    "96": "icons/kamurafox.svg"
+    "48": "icons/wheelman.svg",
+    "96": "icons/wheelman.svg"
   },
   "browser_specific_settings": {
     "gecko": {
-      "id": "kamurafox@gabrielkamura",
+      "id": "wheelman@gabrielkamura",
       "strict_min_version": "140.0",
       "data_collection_permissions": {
         "required": ["websiteContent", "browsingActivity"]
@@ -24,7 +24,7 @@
   },
   "browser_action": {
     "default_title": "__MSG_extName__",
-    "default_icon": "icons/kamurafox.svg",
+    "default_icon": "icons/wheelman.svg",
     "default_popup": "popup/popup.html"
   }
 }

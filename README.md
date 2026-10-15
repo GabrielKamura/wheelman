@@ -1,86 +1,109 @@
-<img src="extension/icons/kamurafox.svg" width="96" alt="">
+<img src="extension/icons/wheelman.svg" width="96" alt="">
 
-# Kamurafox
+# Wheelman
 
-Deixa o Claude Code dirigir o Firefox: abrir aba, navegar, ler a página, clicar, digitar, tirar print, ver o console e a rede. É o que a extensão Claude in Chrome faz no Chrome, feito do zero para o Firefox.
+Lets your AI drive Firefox: open tabs, navigate, read the page, click, type, take screenshots, and see the console and network. Works with any agent that speaks MCP: Claude Code, Codex, Gemini CLI, Cursor and others. It does what the Claude in Chrome extension does in Chrome, built from scratch for Firefox and open to every AI.
 
-Projeto não oficial. Não é da Anthropic nem da Mozilla.
+Up to version 0.1.0 the project was called Kamurafox.
+
+Unofficial project. Not from Mozilla or any AI company.
 
 <p>
-  <img src="docs/img/aba-dirigida.jpg" width="620" alt="Página de exemplo preenchida pelo Claude Code, com a moldura preta e amarela e a figurinha de aviso">
-  <img src="docs/img/popup-pt_BR.png" width="210" alt="Popup do Kamurafox: ponte ligada, abas sob controle e o botão Pausar controle">
+  <img src="docs/img/driven-tab.jpg" width="620" alt="Sample page filled in by the AI, with the black and yellow frame and the notice sticker">
+  <img src="docs/img/popup-en.png" width="210" alt="Wheelman popup: bridge connected, tabs under control and the Pause control button">
 </p>
 
-## Como funciona
+## How it works
 
 ```
-Claude Code ── MCP (stdio) ── mcp-server.js ── socket Unix ── native-host.js ── native messaging ── extensão
+AI agent ── MCP (stdio) ── mcp-server.js ── Unix socket ── native-host.js ── native messaging ── extension
 ```
 
-- `extension/`: a extensão. O código que lê e mexe na página só entra nas abas que o Claude controla.
-- `bridge/native-host.js`: programa que o Firefox liga quando a extensão sobe. Abre um socket em `~/.kamurafox/sockets/`, com acesso só do seu usuário.
-- `bridge/mcp-server.js`: servidor MCP que o Claude Code liga a cada sessão e que fala com o socket.
+- `extension/`: the extension. The code that reads and touches the page is only injected into tabs the AI controls.
+- `bridge/native-host.js`: the program Firefox starts when the extension loads. It opens a socket in `~/.wheelman/sockets/`, accessible only to your user.
+- `bridge/mcp-server.js`: the MCP server the agent starts for each session, which talks to the socket. It also tells the extension the agent's name, which shows up in the tab notice.
 
-Nada sai para a rede: a conversa entre o Claude Code e o Firefox fica dentro do computador.
+Nothing goes over the network: the conversation between the AI and Firefox stays on your computer (what the AI does with what it read follows that AI's own rules).
 
-## Instalar
+## Install
 
-Precisa de Node 20 ou mais novo e Firefox 140 ou mais novo, em macOS ou Linux.
+Needs Node 20 or newer and Firefox 140 or newer, on macOS or Linux.
 
 ```sh
-npm install      # só para desenvolver: traz o web-ext
-npm run setup    # copia a ponte para ~/.kamurafox e registra no Firefox e no Claude Code
+npm install      # development only: brings in web-ext
+npm run setup    # copies the bridge to ~/.wheelman and registers it with Firefox and your AI agents
 ```
 
-Depois instale a extensão no Firefox:
+Then install the extension in Firefox:
 
-- **Do jeito normal:** baixe o `kamurafox-0.1.0.xpi` em [Releases](https://github.com/GabrielKamura/kamurafox/releases/latest) e abra o arquivo no Firefox. Ele é assinado pela Mozilla e fica instalado de vez.
-- **Para mexer no código:** `npm run firefox` abre um Firefox com perfil próprio (`~/.kamurafox/profile`) e a extensão carregada direto da pasta. Outra opção é `about:debugging#/runtime/this-firefox`, "Carregar extensão temporária", escolhendo `extension/manifest.json`.
+- **The normal way:** download `wheelman-0.2.1.xpi` from [Releases](https://github.com/GabrielKamura/wheelman/releases/latest) and open the file in Firefox. It is signed by Mozilla and stays installed.
+- **To work on the code:** `npm run firefox` opens a Firefox with its own profile (`~/.wheelman/profile`) and the extension loaded straight from the folder. Another option is `about:debugging#/runtime/this-firefox`, "Load Temporary Add-on", choosing `extension/manifest.json`.
 
-Abra uma sessão nova do Claude Code: as ferramentas aparecem como `mcp__kamurafox__*`.
+Open a new session of your agent: in Claude Code the tools show up as `mcp__wheelman__*`.
 
-## Ferramentas
+### AI agents
 
-| Ferramenta | O que faz |
+`npm run setup` registers the MCP server with every agent it finds on your computer: Claude Code, Codex, Gemini CLI, Antigravity (`agy`) and Cursor. Running it again is safe. Cursor asks you to approve new servers once: `cursor-agent mcp enable wheelman`, or approve it in Cursor's settings.
+
+Any other agent that speaks MCP works too: point it at the server in `~/.wheelman/bridge/mcp-server.js`. By hand, the commands the installer runs are:
+
+```sh
+claude mcp add -s user wheelman -- node ~/.wheelman/bridge/mcp-server.js   # Claude Code
+codex mcp add wheelman -- node ~/.wheelman/bridge/mcp-server.js           # Codex
+gemini mcp add -s user wheelman node ~/.wheelman/bridge/mcp-server.js     # Gemini CLI
+agy mcp add wheelman node ~/.wheelman/bridge/mcp-server.js                # Antigravity
+```
+
+In Cursor, in `~/.cursor/mcp.json`:
+
+```json
+{ "mcpServers": { "wheelman": { "command": "node", "args": ["/Users/YOU/.wheelman/bridge/mcp-server.js"] } } }
+```
+
+Several AIs can be connected at the same time. The sticker on the tab says who touched it last ("Codex is driving this tab"); when the agent does not give its name, it reads "AI is driving this tab".
+
+## Tools
+
+| Tool | What it does |
 | --- | --- |
-| `tabs_context`, `tabs_create`, `tabs_adopt`, `tabs_close` | Lista, abre, assume e fecha abas |
-| `navigate` | Vai para uma URL, volta, avança ou recarrega |
-| `read_page`, `get_page_text`, `find` | Lê a estrutura da página, o texto, ou procura elementos por palavra-chave |
-| `computer` | Print (com `show_mark` a moldura aparece na foto), zoom, clique, hover, digitar, teclas, rolagem, espera |
-| `form_input` | Preenche campo, caixa de seleção ou lista |
-| `javascript_tool` | Roda JavaScript na página |
-| `read_console_messages`, `read_network_requests` | Console e rede da aba |
-| `handle_dialogs`, `resize_window` | Resposta a `confirm`/`prompt` e tamanho da janela |
+| `tabs_context`, `tabs_create`, `tabs_adopt`, `tabs_close` | Lists, opens, adopts and closes tabs |
+| `navigate` | Goes to a URL, goes back, goes forward or reloads |
+| `read_page`, `get_page_text`, `find` | Reads the page structure or text, or finds elements by keyword |
+| `computer` | Screenshot (with `show_mark` the frame appears in the picture), zoom, click, hover, type, keys, scroll, wait |
+| `form_input` | Fills in a field, checkbox or dropdown |
+| `javascript_tool` | Runs JavaScript in the page |
+| `read_console_messages`, `read_network_requests` | The tab's console and network |
+| `handle_dialogs`, `resize_window` | Answers `confirm`/`prompt` dialogs and sets the window size |
 
-## Segurança
+## Security
 
-- O Claude só age nas abas que ele abriu, ou nas que você mandou assumir. Elas ficam num grupo "Claude" e ganham uma moldura preta e amarela com o aviso "Claude Code está dirigindo esta aba".
-- Enquanto o Claude tem alguma aba, um script mínimo (`early.js`) roda no começo de cada página das outras abas só para perguntar "esta aba é controlada?". Se não for, ele se desfaz na hora e não lê nada da página. É o único jeito de gravar o console desde o primeiro instante nas abas controladas. Sem nenhuma aba sob controle, ele nem é registrado.
-- O botão da extensão mostra as abas sob controle, solta qualquer uma e tem **Pausar controle**, que corta tudo na hora.
-- Qualquer programa rodando com o seu usuário consegue falar com o socket. É o mesmo nível de confiança do Claude in Chrome.
+- The AI only acts in tabs it opened, or in tabs you told it to take over. They sit in an "AI" group and get a black and yellow frame with a notice saying who is driving, for example "Claude Code is driving this tab".
+- While any AI has a tab, a tiny script (`early.js`) runs at the start of each page in the other tabs just to ask "is this tab controlled?". If not, it removes itself immediately and reads nothing from the page. It is the only way to record the console from the very first moment in controlled tabs. With no tab under control, it is not even registered.
+- The extension button shows the tabs under control, releases any of them and has **Pause control**, which cuts everything off at once.
+- Any program running as your user can talk to the socket. That is the same trust level as Claude in Chrome.
 
-## Limites conhecidos
+## Known limits
 
-O Firefox não dá a extensões o depurador que o Chrome dá, então mouse e teclado são eventos sintéticos do DOM:
+Firefox does not give extensions the debugger that Chrome does, so mouse and keyboard are synthetic DOM events:
 
-- menu nativo de `<select>` não abre com clique (use `form_input`);
-- seletor de arquivo, área de transferência e atalhos do próprio navegador ficam de fora;
-- `:hover` de CSS puro não acende;
-- conteúdo dentro de iframes ainda não é alcançado;
-- páginas `about:`, `addons.mozilla.org`, o leitor de PDF e o modo leitura são bloqueados pelo próprio Firefox.
+- the native `<select>` menu does not open on click (use `form_input`);
+- the file picker, the clipboard and the browser's own shortcuts are out of reach;
+- pure CSS `:hover` does not trigger;
+- content inside iframes is not reached yet;
+- `about:` pages, `addons.mozilla.org`, the PDF viewer and reader view are blocked by Firefox itself.
 
-## Desenvolver
+## Development
 
 ```sh
-npm test        # teste de ponta a ponta num Firefox sem janela, com perfil descartável
-npm run lint    # validador da Mozilla
-npm run build   # gera o .zip em dist/
-npm run sign    # assina na Mozilla (precisa da chave em .amo/credenciais.env)
-npm run remove  # desfaz o npm run setup
+npm test        # end-to-end test in a headless Firefox with a throwaway profile
+npm run lint    # Mozilla's validator
+npm run build   # builds the .zip in dist/
+npm run sign    # signs with Mozilla (needs the key in .amo/credenciais.env)
+npm run remove  # undoes npm run setup, for Firefox and every agent
 ```
 
-Mudou algo em `bridge/`? Rode `npm run setup` de novo: o Firefox usa a cópia em `~/.kamurafox`.
+Changed something in `bridge/`? Run `npm run setup` again: Firefox uses the copy in `~/.wheelman`.
 
-## Licença
+## License
 
-GPL-3.0. A fonte Fredoka segue a SIL Open Font License (`extension/fonts/Fredoka-OFL.txt`). O visual está descrito em `docs/design.md`.
+GPL-3.0. The Fredoka font follows the SIL Open Font License (`extension/fonts/Fredoka-OFL.txt`). The visual style is described in `docs/design.md`.
